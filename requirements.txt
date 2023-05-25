@@ -1,0 +1,6 @@
+PyPDF2[image]
+pdfminer.six[image]
+cn2an
+jsons
+fastapi
+pymongo==3.11
