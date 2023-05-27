@@ -1,0 +1,21 @@
+.question {
+    background-color: #f5f5f5;
+    padding: 10px;
+    border-radius: 5px;
+    line-height: 1.5;
+    text-align: left;
+}
+
+.question ul {
+    padding-left: 0;
+}
+
+.question li {
+    line-height: 1.5;
+    list-style-type: none; /* Remove the default list bullet */
+    margin-bottom: 10px; /* Adjust this value to increase or decrease space between choices */
+}
+
+.question li.selected {
+    background-color: #3ed57d;
+}
