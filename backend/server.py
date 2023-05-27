@@ -3,14 +3,29 @@ import uuid
 from datetime import timedelta
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from quiz_app.repo.access import AccessAPI
 from quiz_app.repo import new_connection
 from quiz_app.models import *
 
 
 app = FastAPI()
-repo = new_connection().get_access_api()
+repo: AccessAPI = new_connection().get_access_api()
+
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class NewQuizParam(BaseModel):
@@ -24,12 +39,11 @@ class NewQuizParam(BaseModel):
 class QuizDisplay(BaseModel):
     quiz_id: str
     name: str
-    topics: list[str]
+    topic_ids: list[str]
 
     size: int
     current_index: int
     is_done: bool
-    current_question: Question | None
 
     create_time: datetime
     update_time: datetime | None = None
@@ -39,18 +53,13 @@ class QuizDisplay(BaseModel):
     @classmethod
     def from_model(cls, quiz: Quiz) -> 'QuizDisplay':
         index = quiz.current_index
-        if index >= 0:
-            current = quiz.problems[index]
-        else:
-            current = None
         return QuizDisplay(
-            quiz_id=quiz.id_,
+            quiz_id=quiz.quiz_id,
             name=quiz.name,
-            topics=quiz.topics,
+            topic_ids=quiz.topic_ids,
             size=quiz.size,
-            is_done=current is None,
+            is_done=quiz.is_done,
             current_index=index,
-            current_question=current,
             create_time=quiz.create_time,
             update_time=quiz.update_time,
             begin_time=quiz.begin_time,
@@ -92,9 +101,9 @@ def new_quiz(param: NewQuizParam) -> QuizDisplay:
     now = datetime.now()
 
     quiz = Quiz(
-        id_=id_,
+        quiz_id=id_,
         name=(param.name if param.name else f'quiz:{id_}'),
-        topics=sorted({t for q in questions for t in q.of_topics}),
+        topic_ids=sorted({q.topic_id for q in questions}),
         problems=[QuizProblem(q) for q in questions],
         create_time=now,
     )
@@ -105,47 +114,47 @@ def new_quiz(param: NewQuizParam) -> QuizDisplay:
 
 @app.get('/quiz/{quiz_id}')
 def get_quiz(quiz_id: str) -> QuizDisplay:
+    return QuizDisplay.from_model(repo.quiz.get(quiz_id))
+
+
+@app.get('/quiz/{quiz_id}/{question_index}')
+def get_quiz_question(quiz_id: str, question_index: int) -> QuizProblem:
     quiz = repo.quiz.get(quiz_id)
-    return QuizDisplay.from_model(quiz)
-
-
-@app.get('/quiz/{quiz_id}/question/{question_id}')
-def get_quiz_question(quiz_id: str, question_id: str) -> QuizProblem:
-    quiz = repo.quiz.get(quiz_id)
-
-    for quiz_question in quiz.problems:
-        if quiz_question.question.number == question_id:
-            return quiz_question
-    else:
-        raise HTTPException(status_code=404, detail='question not found')
-
-
-@app.post('/quiz/{quiz_id}/question/{question_id}')
-def submit_question(quiz_id: str, question_id: str, answers: list[str]) -> QuizProblem:
-    quiz = repo.quiz.get(quiz_id)
-
-    for quiz_question in quiz.problems:
-        if quiz_question.question.number == question_id:
-            break
-    else:
-        raise HTTPException(status_code=404, detail='question not found')
-
-    if quiz_question.status != ProblemAnswerStatus.NOT_ANSWERED:
-        raise HTTPException(status_code=400, detail='question already answered')
-    quiz_question.user_answer = answers
     try:
-        is_correct = quiz_question.question.is_correct(answers)
+        problem = quiz.problems[question_index]
+    except IndexError:
+        raise HTTPException(status_code=404, detail='question not found')
+    if problem.status == ProblemAnswerStatus.NOT_ANSWERED:
+        problem.question.answer = None
+        problem.question.explain = None
+    return problem
+
+
+@app.post('/quiz/{quiz_id}/{question_index}')
+def submit_quiz_question(quiz_id: str, question_index: int, answers: list[str]) -> QuizProblem:
+    quiz = repo.quiz.get(quiz_id)
+
+    try:
+        problem = quiz.problems[question_index]
+    except IndexError:
+        raise HTTPException(status_code=404, detail='question not found')
+
+    if problem.status != ProblemAnswerStatus.NOT_ANSWERED:
+        raise HTTPException(status_code=400, detail='question already answered')
+    problem.user_answer = answers
+    try:
+        is_correct = problem.question.is_correct(answers)
     except ValueError:
         raise HTTPException(status_code=400, detail='answer not acceptable')
 
     if is_correct:
-        quiz_question.status = ProblemAnswerStatus.CORRECT
+        problem.status = ProblemAnswerStatus.CORRECT
     else:
-        quiz_question.status = ProblemAnswerStatus.INCORRECT
-        update_all_wrong_answer_quiz(quiz_question.question)
+        problem.status = ProblemAnswerStatus.INCORRECT
+        update_all_wrong_answer_quiz(problem.question)
 
     repo.quiz.update(quiz)
-    return get_quiz_question(quiz_id, question_id)
+    return problem
 
 
 def update_all_wrong_answer_quiz(question: Question):

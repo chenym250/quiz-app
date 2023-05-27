@@ -108,3 +108,39 @@ class QuestionAccess(access.Access[Question]):
 
     def delete(self, id_: str):
         self.questions.delete_many({'number': id_})
+
+
+class QuizAccess(access.Access[Quiz]):
+
+    db: 'Database'
+
+    def __init__(self, db: 'Database'):
+        self.db = db
+
+    @property
+    def quizzes(self) -> 'Collection':
+        return self.db.quizzes
+
+    def list_ids(self) -> list[str]:
+        return [
+            topic['quiz_id']
+            for topic in self.quizzes.find(projection=['quiz_id'])
+        ]
+
+    def get(self, id_: str) -> Quiz:
+        raw = self.quizzes.find_one({'quiz_id': id_})
+        return deserialize(Quiz, raw)
+
+    def add(self, m: Quiz) -> Quiz:
+        raw = serialize(m)
+        _id = self.quizzes.insert_one(raw).inserted_id
+        raw = self.quizzes.find_one({'_id': _id})
+        return deserialize(Quiz, raw)
+
+    def update(self, m: Quiz) -> Quiz:
+        raw = serialize(m)
+        raw = self.quizzes.find_one_and_replace({'quiz_id': m.quiz_id}, raw)
+        return deserialize(Quiz, raw)
+
+    def delete(self, id_: str):
+        self.quizzes.delete_many({'number': id_})

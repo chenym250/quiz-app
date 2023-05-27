@@ -4,7 +4,7 @@ import os
 from pymongo import ASCENDING
 from pymongo import MongoClient
 
-from .access import TopicAccess, QuestionAccess
+from .access import TopicAccess, QuestionAccess, QuizAccess
 from ..access import AccessAPI, Connection
 
 
@@ -20,8 +20,9 @@ class MongoConnection(Connection):
         api = AccessAPI()
         api.topic = TopicAccess(db)
         api.question = QuestionAccess(db)
+        api.quiz = QuizAccess(db)
 
-        db.question.create_index([('number', ASCENDING)], unique=True)
-        db.question.create_index([('topic_id', ASCENDING)])
+        db.questions.create_index([('number', ASCENDING)], unique=True)
+        db.questions.create_index([('topic_id', ASCENDING)])
 
         return api

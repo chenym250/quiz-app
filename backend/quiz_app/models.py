@@ -124,9 +124,9 @@ class QuizProblem:
 
 @dataclasses.dataclass
 class Quiz:
-    id_: str
+    quiz_id: str
     name: str
-    topics: list[str]
+    topic_ids: list[str]
     create_time: datetime
     update_time: datetime | None = None
     begin_time: datetime | None = None

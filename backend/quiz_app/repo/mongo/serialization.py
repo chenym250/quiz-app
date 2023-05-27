@@ -13,7 +13,7 @@ T = TypeVar('T')
 class Serializer:
     __custom__: dict[Type, Callable[[Any], dict]] = None
 
-    def serialize(self, obj: T) -> dict | list[dict]:
+    def serialize(self, obj: T) -> dict | list[dict] | str:
         for cls, func in (self.__custom__ or {}).items():
             if isinstance(obj, cls):
                 return func(obj)
@@ -28,6 +28,10 @@ class Serializer:
             return {k: serialize(v) for k, v in obj}
         if isinstance(obj, (list, tuple, set)):
             return [serialize(v) for v in obj]
+        if isinstance(obj, Enum):
+            return obj.name
+        if not dataclasses.is_dataclass(obj):
+            return str(obj)
 
         result = {}
         for field in dataclasses.fields(obj):
@@ -102,15 +106,16 @@ def _deserialize_question(cls: Type[Question], dict_: dict) -> Question:
     if 'of_type' not in dict_:
         raise ValueError
     question_type = QuestionType[dict_['of_type']]
-    del dict_['_id']
+    if '_id' in dict_:
+        del dict_['_id']
     return question_type.__qmodel__(**dict_)
 
 
 @_deserializer.register(Quiz)
-def _deserialize_topic(cls: Type[Quiz], dict_: dict) -> Quiz:
+def _deserialize_quiz(cls: Type[Quiz], dict_: dict) -> Quiz:
     dict_ = dict(dict_)
-    if 'questions' in dict_:
-        dict_['questions'] = [_deserialize_quiz_problem(QuizProblem, q) for q in dict_['problems']]
+    if 'problems' in dict_:
+        dict_['problems'] = [_deserialize_quiz_problem(QuizProblem, q) for q in dict_['problems']]
     del dict_['_id']
     return Quiz(**dict_)
 
@@ -119,7 +124,7 @@ def _deserialize_topic(cls: Type[Quiz], dict_: dict) -> Quiz:
 def _deserialize_quiz_problem(cls: Type[QuizProblem], dict_: dict) -> QuizProblem:
     return QuizProblem(
         question=_deserialize_question(Question, dict_['question']),
-        status=ProblemAnswerStatus(dict_['status']),
+        status=ProblemAnswerStatus[dict_['status']],
         user_answer=dict_.get('user_answer', []),
     )
 
