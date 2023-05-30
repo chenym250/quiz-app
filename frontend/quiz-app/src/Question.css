@@ -17,5 +17,28 @@
 }
 
 .question li.selected {
-    background-color: #3ed57d;
+    background-color: #c0c0c0;
+}
+
+.question button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    background-color: #c0c0c0;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* .question button:hover {
+    background-color: #a0a0a0;
+}
+
+.question button:focus {
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+} */
+
+.question button.hidden {
+    display: none;
 }

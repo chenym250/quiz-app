@@ -8,11 +8,22 @@ const Quiz = () => {
   const [questionData, setQuestionData] = useState(null);
   const [questionIndex, setQuestionIndex] = useState(0);
 
+  const onUserAnswers = async (userAnswer) => {
+    console.log('onUserAnswers', questionIndex, userAnswer);
+    // try {
+    //   const response = await axios.post(`http://localhost:8000/quiz/${quizId}/${questionIndex}`, data=userAnswer);
+    //   setQuestionData(response.data);
+    // } catch (error) {
+    //   console.error('Error fetching quiz data:', error);
+    // }
+  }
+
   useEffect(() => {
     const fetchQuizData = async () => {
       try {
         const response = await axios.get(`http://localhost:8000/quiz/${quizId}`);
         setQuizData(response.data);
+        setQuestionIndex(response.data.current_index);
       } catch (error) {
         console.error('Error fetching quiz data:', error);
       }
@@ -24,9 +35,8 @@ const Quiz = () => {
   useEffect(() => {
     if (quizData) {
       const fetchQuestionData = async () => {
-        const currentQuestionIndex = quizData.current_index;
         try {
-          const response = await axios.get(`http://localhost:8000/quiz/${quizId}/${currentQuestionIndex}`);
+          const response = await axios.get(`http://localhost:8000/quiz/${quizId}/${questionIndex}`);
           setQuestionData(response.data);
         } catch (error) {
           console.error('Error fetching question data:', error);
@@ -41,13 +51,13 @@ const Quiz = () => {
     return <div>Loading...</div>;
   }
 
-  const { name, current_index, size } = quizData;
+  const { name, size } = quizData;
 
   return (
     <div>
       <h1>Quiz: {name}</h1>
-      <h2>{current_index + 1}/{size}</h2>
-      <Question question={questionData.question} />
+      <h2>{questionIndex + 1}/{size}</h2>
+      <Question quiz_question={questionData} onUserAnswers={onUserAnswers} />
     </div>
   );
 };
