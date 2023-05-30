@@ -9,17 +9,10 @@ ID_TBD = 'TBD'
 
 
 class QuestionType(Enum):
-    MULTI_CHOICE = '单项选择题'
-    MULTI_ANSWER = '多项选择题'
-    SHORT_ANSWER = '简答题'
-    UNDEFINED = '\x00'*10
-
-    @classmethod
-    def from_val(cls, val: str) -> 'QuestionType':
-        for qt in cls:
-            if qt.value == val:
-                return qt
-        raise ValueError
+    MULTI_CHOICE = 'MULTI_CHOICE'
+    MULTI_ANSWER = 'MULTI_ANSWER'
+    SHORT_ANSWER = 'SHORT_ANSWER'
+    UNDEFINED = 'UNDEFINED'
 
     def register(self, clazz: Type['Question']):
         self.__qmodel__ = clazz

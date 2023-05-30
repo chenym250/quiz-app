@@ -68,12 +68,12 @@ class QuizDisplay(BaseModel):
 
 
 @app.get('/topic/{topic_id}')
-def get_question(topic_id: str):
+def get_topic(topic_id: str) -> Topic:
     return repo.topic.get(topic_id)
 
 
 @app.get('/question/{number}')
-def get_question(number: str):
+def get_question(number: str) -> Question:
     return repo.question.get(number)
 
 

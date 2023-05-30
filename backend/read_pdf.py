@@ -318,12 +318,14 @@ class ChapterReader(Iterator[Topic]):
                 continue
 
             # infer section type
-            section_question_type = None
-            if section.section_title is not None:
-                for q_type in QuestionType:
-                    if q_type.value in section.section_title:
-                        section_question_type = q_type
-                        break
+            if section.section_title == '单项选择题':
+                section_question_type = QuestionType.MULTI_CHOICE
+            elif section.section_title == '多项选择题':
+                section_question_type = QuestionType.MULTI_ANSWER
+            elif section.section_title == '简答题':
+                section_question_type = QuestionType.SHORT_ANSWER
+            else:
+                section_question_type = None
 
             # read indices
             qa: ChapterReader.QAs = chapter[1]
